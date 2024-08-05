@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int codigo_geral = 0;
+
 // ======================================= Structs ============================================ 
 
 typedef struct cliente
@@ -42,6 +44,25 @@ typedef struct pilha
     int quant;
 } Pilha;
 
+// ======================================= Auxiliar ============================================ 
+
+void limpa_buffer()
+{
+    while(getchar() != '\n');
+}
+
+char *aloca_str(int tam)
+{
+    char *vetor = (char *)malloc(sizeof(char) * tam);
+
+    if(!vetor)
+    {
+        printf("Erro ao alocar str");
+        exit(EXIT_FAILURE);
+    }
+
+    return vetor;
+}
 // ======================================= Cliente ============================================ 
 
 Cliente cliente_cria(char *nome, char *endereco, char *cpf)
@@ -83,9 +104,9 @@ Produto produto_cria(char *destinatario, char *endereco, int codigo)
 
 void produto_exibir(Produto produto)
 {
-    printf("Código: %d\n", produto.codigo);
+    printf("\nCódigo: %d\n", produto.codigo);
     printf("Endereço: %s\n", produto.endereco);
-    printf("Destinatário: %s\n", produto.destinatario);
+    printf("Destinatário: %s", produto.destinatario);
 }
 
 // ======================================= Fila ============================================ 
@@ -183,11 +204,16 @@ void fila_imprimir(Fila *fila)
 {
     fila_No *aux = fila->primeiro;
 
-    while(aux != NULL)
+    if(fila_vazia(fila))
+        printf("\nA fila está vazia\n");
+    else
     {
-        produto_exibir(aux->value);
-        printf("\n");
-        aux = aux->proximo;
+        while(aux != NULL)
+        {
+            produto_exibir(aux->value);
+            printf("\n");
+            aux = aux->proximo;
+        }
     }
 }
 
@@ -277,61 +303,137 @@ void pilha_libera(Pilha *p)
 void pilha_imprimir(Pilha *pilha)
 {
     pilha_No *aux = pilha->node;
-
-    while(aux != NULL)
+    
+    if(pilha_vazia(pilha))
+        printf("\nA pilha está vazia\n");
+    else
     {
-        produto_exibir(aux->value);
-        printf("\n");
-        aux = aux->anterior;
+        while(aux != NULL)
+        {
+            produto_exibir(aux->value);
+            printf("\n");
+            aux = aux->anterior;
+        }
     }
+}
+
+// ======================================= Entregas ============================================ 
+
+void cadastrar_rota(Fila *fila)
+{
+    codigo_geral += 1;
+
+    char *destinatario = aloca_str(100);
+    char *endereco = aloca_str(100);
+    
+    printf("\nDestinatário: ");
+    scanf("%[^\n]", destinatario);
+    limpa_buffer();
+
+    printf("Endereço: ");
+    scanf("%[^\n]", endereco);
+    limpa_buffer();
+
+    Produto produto = produto_cria(destinatario, endereco, codigo_geral);
+    fila_push(fila, produto);
+}
+
+void menu_principal(Fila *fila)
+{
+    char op;
+    do
+    {
+        printf("\nMenu\n");
+        printf("[1] - Cadastrar cliente\n");
+        printf("[2] - Exibir todos os clientes\n");
+        printf("[3] - Cadastrar rota\n");
+        printf("[4] - Exibir rota completa\n");
+        printf("[5] - Realizar entrega\n");
+        printf("[0] - Sair\n");
+        printf("Opção: ");
+        op = getchar();
+        limpa_buffer();
+
+        switch(op)
+        {
+            case '1':
+                printf("\nCadastrar cliente\n");
+                break;
+
+            case '2':
+                printf("\nExibir todos os clientes\n");
+                break;
+
+            case '3':
+                cadastrar_rota(fila);
+                break;
+            
+            case '4':
+                fila_imprimir(fila);
+                break;
+            
+            case '5':
+                printf("\nIniciando entregas\n");
+                break;
+
+            case '0':
+                printf("\nSaindo...\n");
+                break;
+            
+            default:
+                printf("\nOpção inválida!\n");
+        }
+    }while(op != '0');
 }
 
 // ======================================= Main ============================================ 
 
 int main()
 {
-    printf("\n[Início da Fila]\n");
     Fila *fila = fila_cria();
-    fila_push(fila, produto_cria("Mateus da rocha sousa", "Av. 123", 1));
-    fila_push(fila, produto_cria("Mateus2", "Av. 222", 2));
-    fila_push(fila, produto_cria("Mateus3", "Av. 333", 3));
+    menu_principal(fila);
+    // printf("\n[Início da Fila]\n");
+    // Fila *fila = fila_cria();
+    // fila_push(fila, produto_cria("Mateus da rocha sousa", "Av. 123", 1));
+    // fila_push(fila, produto_cria("Mateus2", "Av. 222", 2));
+    // fila_push(fila, produto_cria("Mateus3", "Av. 333", 3));
 
-    printf("\n[Fim da inserção]\n");
+    // printf("\n[Fim da inserção]\n");
 
-    fila_imprimir(fila);
+    // fila_imprimir(fila);
 
-    printf("\n[Elemento removido]\n");
-    Produto prod;
-    fila_pop(fila, &prod);
-    fila_pop(fila, &prod);
-    fila_pop(fila, &prod);
-    fila_pop(fila, &prod);
-    produto_exibir(prod);
+    // printf("\n[Elemento removido]\n");
+    // Produto prod;
+    // fila_pop(fila, &prod);
+    // fila_pop(fila, &prod);
+    // fila_pop(fila, &prod);
+    // fila_pop(fila, &prod);
+    // produto_exibir(prod);
 
-    printf("\n[Fila após remoção]\n");
-    fila_imprimir(fila);
+    // printf("\n[Fila após remoção]\n");
+    // fila_imprimir(fila);
 
-    printf("\n[Início da Pilha]\n");
+    // printf("\n[Início da Pilha]\n");
     
-    Pilha *pilha = pilha_cria();
-    pilha_push(pilha, produto_cria("Mateus da rocha sousa", "Av. 123", 1));
-    pilha_push(pilha, produto_cria("Mateus2", "Av. 222", 2));
-    pilha_push(pilha, produto_cria("Mateus3", "Av. 333", 3));
+    // Pilha *pilha = pilha_cria();
+    // pilha_push(pilha, produto_cria("Mateus da rocha sousa", "Av. 123", 1));
+    // pilha_push(pilha, produto_cria("Mateus2", "Av. 222", 2));
+    // pilha_push(pilha, produto_cria("Mateus3", "Av. 333", 3));
 
-    printf("\n[Fim da inserção]\n");
+    // printf("\n[Fim da inserção]\n");
     
-    pilha_imprimir(pilha);
+    // pilha_imprimir(pilha);
 
-    printf("\n[Elemento removido]\n");
+    // printf("\n[Elemento removido]\n");
     
-    pilha_pop(pilha, &prod);
-    pilha_pop(pilha, &prod);
-    pilha_pop(pilha, &prod);
-    pilha_pop(pilha, &prod);
-    produto_exibir(prod);
+    // pilha_pop(pilha, &prod);
+    // pilha_pop(pilha, &prod);
+    // pilha_pop(pilha, &prod);
+    // pilha_pop(pilha, &prod);
+    // produto_exibir(prod);
 
-    printf("\n[Pilha após remoção]\n");
-    pilha_imprimir(pilha);
+    // printf("\n[Pilha após remoção]\n");
+    // pilha_imprimir(pilha);
 
     // Pilha *pilha = pilha_cria();
     // pilha_push(pilha, )
