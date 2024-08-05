@@ -107,7 +107,7 @@ fila_No *fila_no_cria(Produto v)
 
     if(!node)
     {
-        printf("Erro ao alocar no");
+        printf("\nErro ao alocar no\n");
         exit(EXIT_FAILURE);
     }
 
@@ -122,7 +122,7 @@ Fila *fila_cria(void)
 
     if(!fila)
     {
-        printf("Erro ao alocar fila");
+        printf("\nErro ao alocar fila\n");
         exit(EXIT_FAILURE);
     }
     
@@ -149,7 +149,7 @@ int fila_pop(Fila *f, Produto *v)
 {
     if(fila_vazia(f))
     {
-        printf("Erro! A fila está vazia");
+        printf("\nErro! A fila está vazia\n");
         return 0;
     }
 
@@ -210,7 +210,7 @@ pilha_No *pilha_no_cria(Produto v)
 
     if(!node)
     {
-        printf("Erro ao alocar no");
+        printf("\nErro ao alocar no\n");
         exit(EXIT_FAILURE);
     }
 
@@ -225,7 +225,7 @@ Pilha *pilha_cria(void)
 
     if(!pilha)
     {
-        printf("Erro ao alocar pilha");
+        printf("\nErro ao alocar pilha\n");
         exit(EXIT_FAILURE);
     }
     
@@ -246,7 +246,7 @@ int pilha_pop(Pilha *p, Produto *v)
 {
     if(pilha_vazia(p))
     {
-        printf("Erro! A pilha está vazia");
+        printf("\nErro! A pilha está vazia\n");
         return 0;
     }
 
@@ -303,6 +303,9 @@ int main()
     printf("\n[Elemento removido]\n");
     Produto prod;
     fila_pop(fila, &prod);
+    fila_pop(fila, &prod);
+    fila_pop(fila, &prod);
+    fila_pop(fila, &prod);
     produto_exibir(prod);
 
     printf("\n[Fila após remoção]\n");
@@ -321,6 +324,9 @@ int main()
 
     printf("\n[Elemento removido]\n");
     
+    pilha_pop(pilha, &prod);
+    pilha_pop(pilha, &prod);
+    pilha_pop(pilha, &prod);
     pilha_pop(pilha, &prod);
     produto_exibir(prod);
 
