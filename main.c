@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 int codigo_geral = 0;
 
@@ -63,6 +64,13 @@ char *aloca_str(int tam)
 
     return vetor;
 }
+
+void *desaloca(void *vetor)
+{
+    free(vetor);
+    return NULL;
+}
+
 // ======================================= Cliente ============================================ 
 
 Cliente cliente_cria(char *nome, char *endereco, char *cpf)
@@ -110,12 +118,6 @@ void produto_exibir(Produto produto)
 }
 
 // ======================================= Fila ============================================ 
-
-void *fila_desaloca(void *vetor)
-{
-    free(vetor);
-    return NULL;
-}
 
 int fila_vazia(Fila *f)
 {
@@ -169,10 +171,7 @@ void fila_push(Fila *f, Produto v)
 int fila_pop(Fila *f, Produto *v)
 {
     if(fila_vazia(f))
-    {
-        printf("\nErro! A fila está vazia\n");
         return 0;
-    }
 
     if(f->quant == 1) 
         f->ultimo = NULL;
@@ -180,7 +179,7 @@ int fila_pop(Fila *f, Produto *v)
     fila_No *aux = f->primeiro;
     *v = aux->value;
     f->primeiro = aux->proximo;
-    aux = fila_desaloca(aux);
+    aux = desaloca(aux);
     f->quant--;
     return 1;
 }
@@ -193,11 +192,11 @@ void fila_libera(Fila *f)
     while(aux1 != NULL)
     {
         aux2 = aux1->proximo;
-        aux1 = fila_desaloca(aux1);
+        aux1 = desaloca(aux1);
         aux1 = aux2;
     }
 
-    f = fila_desaloca(f);
+    f = desaloca(f);
 }
 
 void fila_imprimir(Fila *fila)
@@ -218,12 +217,6 @@ void fila_imprimir(Fila *fila)
 }
 
 // ======================================= Pilha ============================================ 
-
-void *pilha_desaloca(void *vetor)
-{
-    free(vetor);
-    return NULL;
-}
 
 int pilha_vazia(Pilha *p)
 {
@@ -271,10 +264,7 @@ void pilha_push(Pilha *p, Produto v)
 int pilha_pop(Pilha *p, Produto *v)
 {
     if(pilha_vazia(p))
-    {
-        printf("\nErro! A pilha está vazia\n");
         return 0;
-    }
 
     pilha_No *newFinal = p->node->anterior;
     *v = p->node->value;
@@ -293,11 +283,11 @@ void pilha_libera(Pilha *p)
     while(aux1 != NULL)
     {
         aux2 = aux1->anterior;
-        aux1 = pilha_desaloca(aux1);
+        aux1 = desaloca(aux1);
         aux1 = aux2;
     }
 
-    p = pilha_desaloca(p);
+    p = desaloca(p);
 }
 
 void pilha_imprimir(Pilha *pilha)
@@ -338,9 +328,92 @@ void cadastrar_rota(Fila *fila)
     fila_push(fila, produto);
 }
 
-void menu_principal(Fila *fila)
+void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
 {
+    if(fila_vazia(entregas))
+    {
+        printf("\nNão há rotas cadastrada\n");
+        return;
+    }
+
+    printf("\n[INÍCIO DA ROTA DE IDA]");
+
+    Pilha *pilha = pilha_cria();
+
+    int num, entregue;
+
+    Produto produto;
+
+    while(!fila_vazia(entregas))
+    {
+        num = rand() % 10;
+        entregue = num >= 2;
+        // entregue = num < 2;
+
+        fila_pop(entregas, &produto);
+
+        printf("\n");
+        produto_exibir(produto);
+        printf("\n");
+        if(entregue)
+        {
+            printf("[Entregue]");
+            *score += 5;
+            produto.destinatario = desaloca(produto.destinatario);
+            produto.endereco = desaloca(produto.endereco);
+        }
+        else
+        {
+            printf("[Não entregue]");
+            pilha_push(pilha, produto);
+        }
+    }
+
+    printf("\n\n[FIM DA ROTA DE IDA]\n");
+
+
+    if(pilha_vazia(pilha))
+    {
+        printf("\nTodos os produtos foram entregues na ida\n");
+        return;
+    }
+
+    printf("\n\n[INÍCIO DA ROTA DE VOLTA]");
+
+    while(!pilha_vazia(pilha))
+    {
+        num = rand() % 10;
+        entregue = num >= 2;
+
+        pilha_pop(pilha, &produto);
+
+        printf("\n");
+        produto_exibir(produto);
+        printf("\n");
+        if(entregue)
+        {
+            printf("[Entregue]");
+            *score += 3;
+            produto.destinatario = desaloca(produto.destinatario);
+            produto.endereco = desaloca(produto.endereco);
+        }
+        else
+        {
+            *score -= 1;
+            printf("[Não entregue]");
+            fila_push(devolucoes, produto);
+        }
+    }
+    printf("\n[FIM DA ROTA DE VOLTA]\n");
+}
+
+void menu_principal()
+{
+    Fila *entregas = fila_cria();
+    Fila *devolucoes = fila_cria();
+    int scoreTotal = 0, score;
     char op;
+
     do
     {
         printf("\nMenu\n");
@@ -349,6 +422,7 @@ void menu_principal(Fila *fila)
         printf("[3] - Cadastrar rota\n");
         printf("[4] - Exibir rota completa\n");
         printf("[5] - Realizar entrega\n");
+        printf("[6] - Exibir fila de devoluções\n");
         printf("[0] - Sair\n");
         printf("Opção: ");
         op = getchar();
@@ -365,15 +439,24 @@ void menu_principal(Fila *fila)
                 break;
 
             case '3':
-                cadastrar_rota(fila);
+                cadastrar_rota(entregas);
                 break;
             
             case '4':
-                fila_imprimir(fila);
+                fila_imprimir(entregas);
                 break;
             
             case '5':
-                printf("\nIniciando entregas\n");
+                score = 0;
+                realizar_entrega(entregas, devolucoes, &score);
+                if(score)
+                    printf("\n[Pontuação da rota: %d]\n", score);
+                scoreTotal += score;
+                break;
+
+            case '6':
+                printf("\n[Fila de devoluções]\n");
+                fila_imprimir(devolucoes);
                 break;
 
             case '0':
@@ -390,54 +473,7 @@ void menu_principal(Fila *fila)
 
 int main()
 {
-    Fila *fila = fila_cria();
-    menu_principal(fila);
-    // printf("\n[Início da Fila]\n");
-    // Fila *fila = fila_cria();
-    // fila_push(fila, produto_cria("Mateus da rocha sousa", "Av. 123", 1));
-    // fila_push(fila, produto_cria("Mateus2", "Av. 222", 2));
-    // fila_push(fila, produto_cria("Mateus3", "Av. 333", 3));
-
-    // printf("\n[Fim da inserção]\n");
-
-    // fila_imprimir(fila);
-
-    // printf("\n[Elemento removido]\n");
-    // Produto prod;
-    // fila_pop(fila, &prod);
-    // fila_pop(fila, &prod);
-    // fila_pop(fila, &prod);
-    // fila_pop(fila, &prod);
-    // produto_exibir(prod);
-
-    // printf("\n[Fila após remoção]\n");
-    // fila_imprimir(fila);
-
-    // printf("\n[Início da Pilha]\n");
-    
-    // Pilha *pilha = pilha_cria();
-    // pilha_push(pilha, produto_cria("Mateus da rocha sousa", "Av. 123", 1));
-    // pilha_push(pilha, produto_cria("Mateus2", "Av. 222", 2));
-    // pilha_push(pilha, produto_cria("Mateus3", "Av. 333", 3));
-
-    // printf("\n[Fim da inserção]\n");
-    
-    // pilha_imprimir(pilha);
-
-    // printf("\n[Elemento removido]\n");
-    
-    // pilha_pop(pilha, &prod);
-    // pilha_pop(pilha, &prod);
-    // pilha_pop(pilha, &prod);
-    // pilha_pop(pilha, &prod);
-    // produto_exibir(prod);
-
-    // printf("\n[Pilha após remoção]\n");
-    // pilha_imprimir(pilha);
-
-    // Pilha *pilha = pilha_cria();
-    // pilha_push(pilha, )
-    // Cliente teste2 = cliente_cria("Mateus da rocha sousa", "Av. 123", "123.123.123-12");
-    // cliente_exibir(teste2);
+    srand(time(NULL));
+    menu_principal();
     return 0;
 }
