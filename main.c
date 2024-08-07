@@ -11,7 +11,14 @@ typedef struct cliente
     char *nome;
     char *endereco;
     char *cpf;
+    struct cliente *proximo;
 } Cliente;
+
+typedef struct lista
+{
+    int quant;
+    Cliente *primeiro;
+} Lista;
 
 typedef struct produto
 {
@@ -73,13 +80,20 @@ void *desaloca(void *vetor)
 
 // ======================================= Cliente ============================================ 
 
-Cliente cliente_cria(char *nome, char *endereco, char *cpf)
+Cliente *cliente_cria(char *nome, char *endereco, char *cpf)
 {
-    Cliente cliente;
+    Cliente *cliente = (Cliente *) malloc(sizeof(Cliente));
 
-    cliente.cpf = cpf;
-    cliente.nome = nome;
-    cliente.endereco = endereco;
+    if(!cliente)
+    {
+        printf("\nErro ao alocar cliente\n");
+        exit(EXIT_SUCCESS);
+    }
+
+    cliente->cpf = cpf;
+    cliente->nome = nome;
+    cliente->endereco = endereco;
+    cliente->proximo = NULL;
 
     return cliente;
 }
@@ -92,7 +106,7 @@ void *cliente_desaloca(Cliente *cliente)
 
 void cliente_exibir(Cliente cliente)
 {
-    printf("Nome: %s\n", cliente.nome);
+    printf("\nNome: %s\n", cliente.nome);
     printf("Endereço: %s\n", cliente.endereco);
     printf("CPF: %s\n", cliente.cpf);
 }
@@ -114,7 +128,78 @@ void produto_exibir(Produto produto)
 {
     printf("\nCódigo: %d\n", produto.codigo);
     printf("Endereço: %s\n", produto.endereco);
-    printf("Destinatário: %s", produto.destinatario);
+    printf("Destinatário: %s\n", produto.destinatario);
+}
+
+// ======================================= Lista Encadeada ============================================ 
+
+Lista *lista_cria(void)
+{
+    Lista *lista = (Lista *) malloc(sizeof(Lista));
+
+    if(!lista)
+    {
+        printf("\nErro ao alocar lista\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    lista->primeiro = NULL;
+    lista->quant = 0;
+    return lista;
+}
+
+void lista_add(Lista *lista, Cliente *cliente)
+{
+    lista->quant += 1;
+    if(lista->primeiro == NULL)
+    {
+        lista->primeiro = cliente;
+        return;
+    }
+
+    Cliente *aux = lista->primeiro;
+
+
+    while(aux->proximo != NULL)
+        aux = aux->proximo;
+
+    aux->proximo = cliente;
+}
+
+void lista_exibir(Lista *lista)
+{
+    if (lista->primeiro == NULL)
+        printf("\nLista vazia\n");
+    else
+    {
+        Cliente *aux = lista->primeiro;
+        while (aux != NULL)
+        {
+            cliente_exibir(*aux);
+            aux = aux->proximo;
+        }
+    }
+}
+
+void lista_desalocar(Lista *lista)
+{
+    if (lista == NULL)
+        printf("Lista vazia ");
+    else
+    {
+        Cliente *aux = lista->primeiro;
+        Cliente *aux2;
+        while (aux != NULL)
+        {
+            aux->nome = desaloca(aux->nome);
+            aux->endereco = desaloca(aux->endereco);
+            aux->cpf = desaloca(aux->cpf);
+
+            aux2 = aux->proximo;
+            aux = desaloca(aux);
+            aux = aux2;
+        }
+    }
 }
 
 // ======================================= Fila ============================================ 
@@ -210,7 +295,6 @@ void fila_imprimir(Fila *fila)
         while(aux != NULL)
         {
             produto_exibir(aux->value);
-            printf("\n");
             aux = aux->proximo;
         }
     }
@@ -301,7 +385,6 @@ void pilha_imprimir(Pilha *pilha)
         while(aux != NULL)
         {
             produto_exibir(aux->value);
-            printf("\n");
             aux = aux->anterior;
         }
     }
@@ -309,13 +392,35 @@ void pilha_imprimir(Pilha *pilha)
 
 // ======================================= Entregas ============================================ 
 
-void cadastrar_rota(Fila *fila)
+void cadastrar_cliente(Lista *clientes)
+{
+    char *nome = aloca_str(100);
+    char *endereco = aloca_str(100);
+    char *cpf = aloca_str(100);
+    
+    printf("\nNome: ");
+    scanf("%[^\n]", nome);
+    limpa_buffer();
+
+    printf("Endereço: ");
+    scanf("%[^\n]", endereco);
+    limpa_buffer();
+
+    printf("CPF: ");
+    scanf("%[^\n]", cpf);
+    limpa_buffer();
+
+    Cliente *cliente = cliente_cria(nome, endereco, cpf);
+    lista_add(clientes, cliente);
+}
+
+void cadastrar_rota(Fila *fila, Lista *clientes)
 {
     codigo_geral += 1;
 
-    char *destinatario = aloca_str(100);
-    char *endereco = aloca_str(100);
-    
+    char *destinatario;
+    char *endereco;
+
     printf("\nDestinatário: ");
     scanf("%[^\n]", destinatario);
     limpa_buffer();
@@ -348,13 +453,11 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
     {
         num = rand() % 10;
         entregue = num >= 2;
-        // entregue = num < 2;
 
         fila_pop(entregas, &produto);
 
         printf("\n");
         produto_exibir(produto);
-        printf("\n");
         if(entregue)
         {
             printf("[Entregue]");
@@ -389,7 +492,6 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
 
         printf("\n");
         produto_exibir(produto);
-        printf("\n");
         if(entregue)
         {
             printf("[Entregue]");
@@ -404,13 +506,14 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
             fila_push(devolucoes, produto);
         }
     }
-    printf("\n[FIM DA ROTA DE VOLTA]\n");
+    printf("\n\n[FIM DA ROTA DE VOLTA]\n");
 }
 
 void menu_principal()
 {
     Fila *entregas = fila_cria();
     Fila *devolucoes = fila_cria();
+    Lista *clientes = lista_cria();
     int scoreTotal = 0, score;
     char op;
 
@@ -431,15 +534,15 @@ void menu_principal()
         switch(op)
         {
             case '1':
-                printf("\nCadastrar cliente\n");
+                cadastrar_cliente(clientes);
                 break;
 
             case '2':
-                printf("\nExibir todos os clientes\n");
+                lista_exibir(clientes);
                 break;
 
             case '3':
-                cadastrar_rota(entregas);
+                cadastrar_rota(entregas, clientes);
                 break;
             
             case '4':
