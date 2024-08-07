@@ -207,7 +207,7 @@ void lista_exibir(Lista *lista)
     }
 }
 
-void lista_desalocar(Lista *lista)
+void lista_libera(Lista *lista)
 {
     if (lista == NULL)
         printf("Lista vazia ");
@@ -524,8 +524,8 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
     while(!fila_vazia(entregas))
     {
         num = rand() % 10;
-        // entregue = num >= 2;
-        entregue = num < 5;
+        entregue = num >= 2;
+        // entregue = num < 5;
 
         fila_pop(entregas, &produto);
 
@@ -616,6 +616,9 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
         }
     }
     printf("\n\n[FIM DA ROTA DE VOLTA]\n");
+
+    pilha_libera(pilha);
+    fila_libera(fila_auxiliar);
 }
 
 void menu_principal()
@@ -696,6 +699,9 @@ void menu_principal()
                 printf("\nOpção inválida!\n");
         }
     }while(op != '0');
+    fila_libera(entregas);
+    fila_libera(devolucoes);
+    lista_libera(clientes);
 }
 
 // ======================================= Main ============================================ 
