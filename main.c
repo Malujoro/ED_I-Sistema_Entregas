@@ -418,8 +418,10 @@ void cadastrar_rota(Fila *fila, Lista *clientes)
 {
     codigo_geral += 1;
 
-    char *destinatario;
-    char *endereco;
+    char *destinatario = aloca_str(100);
+    char *endereco = aloca_str(100);
+
+    lista_exibir(clientes);
 
     printf("\nDestinatário: ");
     scanf("%[^\n]", destinatario);
@@ -542,7 +544,10 @@ void menu_principal()
                 break;
 
             case '3':
-                cadastrar_rota(entregas, clientes);
+                if(clientes->quant > 0)
+                    cadastrar_rota(entregas, clientes);
+                else
+                    printf("\nCadastre algum cliente antes de cadastrar as rotas\n");
                 break;
             
             case '4':
