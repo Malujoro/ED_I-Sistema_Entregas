@@ -72,6 +72,32 @@ char *aloca_str(int tam)
     return vetor;
 }
 
+int *aloca_int(int tam)
+{
+    int *vetor = (int *)calloc(sizeof(int), tam);
+
+    if(!vetor)
+    {
+        printf("Erro ao alocar int");
+        exit(EXIT_FAILURE);
+    }
+
+    return vetor;
+}
+
+int *realoca_int(int *vet, int tam)
+{
+    int *vet2 = realloc(vet, sizeof(int) * tam);
+
+    if(!vet2)
+    {
+        printf("Erro ao realocar vetor int");
+        return vet;
+    }
+
+    return vet2;
+}
+
 void *desaloca(void *vetor)
 {
     free(vetor);
@@ -414,28 +440,69 @@ void cadastrar_cliente(Lista *clientes)
     lista_add(clientes, cliente);
 }
 
-void cadastrar_rota(Fila *fila, Lista *clientes)
+void cadastrar_rota(Fila *fila, Lista *clientes, int *vet_enderecos)
 {
     codigo_geral += 1;
+    char *destinatario;
+    char *endereco;
+    int i, opcao;
+    Cliente *aux = clientes->primeiro;
 
-    char *destinatario = aloca_str(100);
-    char *endereco = aloca_str(100);
+    do
+    {
+        printf("\nLista de clientes:\n");
 
-    lista_exibir(clientes);
+        for(i = 0; i < clientes->quant; i++)
+        {
+            printf("\n%dº cliente\n", i+1);
+            printf("%s\n", aux->nome);
+            printf("%s\n", aux->endereco);
+            aux = aux->proximo;
+        }
 
-    printf("\nDestinatário: ");
-    scanf("%[^\n]", destinatario);
-    limpa_buffer();
+        printf("\nDigite número do cliente: ");
+        scanf("%d", &opcao);
+        limpa_buffer();
 
-    printf("Endereço: ");
-    scanf("%[^\n]", endereco);
-    limpa_buffer();
+        if(opcao <= 0 || opcao > clientes->quant)
+            printf("\nOpção inválida\n");
+    }while(opcao <= 0 || opcao > clientes->quant);
+
+    opcao--;
+    aux = clientes->primeiro;
+    i = 0;
+    
+    while(i < opcao)
+    {
+        aux = aux->proximo;
+        i++;
+    }
+
+    vet_enderecos[i]++;
+
+    destinatario = aux->nome;
+    endereco = aux->endereco;
 
     Produto produto = produto_cria(destinatario, endereco, codigo_geral);
     fila_push(fila, produto);
 }
 
-void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
+int busca_endereco(Lista *clientes, char *endereco)
+{
+    Cliente *aux = clientes->primeiro;
+    int cont = 0;
+
+    while(aux != NULL)
+    {
+        if(aux->endereco == endereco)
+            return cont;
+        aux = aux->proximo;
+        cont += 1;
+    }
+    return -1;
+}
+
+void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *vet_enderecos, int *score)
 {
     if(fila_vazia(entregas))
     {
@@ -446,8 +513,10 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
     printf("\n[INÍCIO DA ROTA DE IDA]");
 
     Pilha *pilha = pilha_cria();
+    Fila *fila_auxiliar = fila_cria();
 
-    int num, entregue;
+    int num, entregue, pos = 0, aux;
+    char *endereco;
 
     Produto produto;
 
@@ -459,23 +528,44 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
         fila_pop(entregas, &produto);
 
         printf("\n");
-        produto_exibir(produto);
-        if(entregue)
+
+        endereco = produto.endereco;
+        pos = busca_endereco(clientes, endereco);
+        aux = vet_enderecos[pos];
+        
+        while(aux > 0)
         {
-            printf("[Entregue]");
-            *score += 5;
-            produto.destinatario = desaloca(produto.destinatario);
-            produto.endereco = desaloca(produto.endereco);
+            if(produto.endereco == endereco)
+            {
+                aux--;
+                produto_exibir(produto);
+                if(entregue)
+                {
+                    vet_enderecos[pos]--;
+                    printf("[Entregue]\n");
+                    *score += 5;
+                }
+                else
+                {
+                    printf("[Não entregue]");
+                    pilha_push(pilha, produto);
+                }
+            }
+            else
+                fila_push(fila_auxiliar, produto);
+
+            if(aux > 0)
+                fila_pop(entregas, &produto);
         }
-        else
+
+        while(!fila_vazia(fila_auxiliar))
         {
-            printf("[Não entregue]");
-            pilha_push(pilha, produto);
+            fila_pop(fila_auxiliar, &produto);
+            fila_push(entregas, produto);
         }
     }
 
     printf("\n\n[FIM DA ROTA DE IDA]\n");
-
 
     if(pilha_vazia(pilha))
     {
@@ -498,8 +588,6 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, int *score)
         {
             printf("[Entregue]");
             *score += 3;
-            produto.destinatario = desaloca(produto.destinatario);
-            produto.endereco = desaloca(produto.endereco);
         }
         else
         {
@@ -516,8 +604,9 @@ void menu_principal()
     Fila *entregas = fila_cria();
     Fila *devolucoes = fila_cria();
     Lista *clientes = lista_cria();
-    int scoreTotal = 0, score;
+    int scoreTotal = 0, score, tam = 25;
     char op;
+    int *vet_enderecos = aloca_int(25);
 
     do
     {
@@ -537,6 +626,18 @@ void menu_principal()
         {
             case '1':
                 cadastrar_cliente(clientes);
+                if(clientes->quant > tam)
+                {
+                    int *vet_aux = realoca_int(vet_enderecos, tam+25);
+
+                    if(vet_aux == vet_enderecos)
+                        tam -= 25;
+                    else
+                    {
+                        vet_enderecos = vet_aux;
+                        tam += 25;
+                    }
+                }
                 break;
 
             case '2':
@@ -545,7 +646,7 @@ void menu_principal()
 
             case '3':
                 if(clientes->quant > 0)
-                    cadastrar_rota(entregas, clientes);
+                    cadastrar_rota(entregas, clientes, vet_enderecos);
                 else
                     printf("\nCadastre algum cliente antes de cadastrar as rotas\n");
                 break;
@@ -556,7 +657,7 @@ void menu_principal()
             
             case '5':
                 score = 0;
-                realizar_entrega(entregas, devolucoes, &score);
+                realizar_entrega(entregas, devolucoes, clientes, vet_enderecos, &score);
                 if(score)
                     printf("\n[Pontuação da rota: %d]\n", score);
                 scoreTotal += score;
