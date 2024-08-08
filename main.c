@@ -207,7 +207,7 @@ void lista_exibir(Lista *lista)
     }
 }
 
-void lista_desalocar(Lista *lista)
+void lista_libera(Lista *lista)
 {
     if (lista == NULL)
         printf("Lista vazia ");
@@ -446,10 +446,12 @@ void cadastrar_rota(Fila *fila, Lista *clientes, int *vet_enderecos)
     char *destinatario;
     char *endereco;
     int i, opcao;
-    Cliente *aux = clientes->primeiro;
+    Cliente *aux;
 
     do
     {
+        aux = clientes->primeiro;
+
         printf("\nLista de clientes:\n");
 
         for(i = 0; i < clientes->quant; i++)
@@ -462,6 +464,7 @@ void cadastrar_rota(Fila *fila, Lista *clientes, int *vet_enderecos)
 
         printf("\nDigite número do cliente: ");
         scanf("%d", &opcao);
+
         limpa_buffer();
 
         if(opcao <= 0 || opcao > clientes->quant)
@@ -515,7 +518,7 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
     Pilha *pilha = pilha_cria();
     Fila *fila_auxiliar = fila_cria();
 
-    int num, entregue, pos = 0, aux;
+    int num, entregue, pos = 0, aux, quant;
     char *endereco;
 
     Produto produto;
@@ -524,6 +527,7 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
     {
         num = rand() % 10;
         entregue = num >= 2;
+        // entregue = num < 5;
 
         fila_pop(entregas, &produto);
 
@@ -532,6 +536,7 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
         endereco = produto.endereco;
         pos = busca_endereco(clientes, endereco);
         aux = vet_enderecos[pos];
+        quant = vet_enderecos[pos];
         
         while(aux > 0)
         {
@@ -547,7 +552,7 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
                 }
                 else
                 {
-                    printf("[Não entregue]");
+                    printf("[Não entregue]\n");
                     pilha_push(pilha, produto);
                 }
             }
@@ -556,15 +561,23 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
 
             if(aux > 0)
                 fila_pop(entregas, &produto);
+            else if(aux == 0 && quant != 1)
+            {
+                while(!fila_vazia(entregas))
+                {
+                    fila_pop(entregas, &produto);
+                    fila_push(fila_auxiliar, produto);
+                }
+                while(!fila_vazia(fila_auxiliar))
+                {
+                    fila_pop(fila_auxiliar, &produto);
+                    fila_push(entregas, produto);
+                }
+            }
         }
 
-        while(!fila_vazia(fila_auxiliar))
-        {
-            fila_pop(fila_auxiliar, &produto);
-            fila_push(entregas, produto);
-        }
     }
-
+    
     printf("\n\n[FIM DA ROTA DE IDA]\n");
 
     if(pilha_vazia(pilha))
@@ -581,22 +594,33 @@ void realizar_entrega(Fila *entregas, Fila *devolucoes, Lista *clientes, int *ve
         entregue = num >= 2;
 
         pilha_pop(pilha, &produto);
+        endereco = produto.endereco;
+        pos = busca_endereco(clientes, endereco);
+        aux = vet_enderecos[pos];
 
-        printf("\n");
-        produto_exibir(produto);
-        if(entregue)
+        for(int i = aux; i > 0; i--)        
         {
-            printf("[Entregue]");
-            *score += 3;
-        }
-        else
-        {
-            *score -= 1;
-            printf("[Não entregue]");
-            fila_push(devolucoes, produto);
+            printf("\n");
+            produto_exibir(produto);
+            if(entregue)
+            {
+                printf("[Entregue]");
+                *score += 3;
+            }
+            else
+            {
+                *score -= 1;
+                printf("[Não entregue]");
+                fila_push(devolucoes, produto);
+            }
+            if(i != 0)
+                pilha_pop(pilha, &produto);
         }
     }
     printf("\n\n[FIM DA ROTA DE VOLTA]\n");
+
+    pilha_libera(pilha);
+    fila_libera(fila_auxiliar);
 }
 
 void menu_principal()
@@ -614,10 +638,11 @@ void menu_principal()
         printf("[1] - Cadastrar cliente\n");
         printf("[2] - Exibir todos os clientes\n");
         printf("[3] - Cadastrar rota\n");
-        printf("[4] - Exibir rota completa\n");
+        printf("[4] - Exibir produtos da rota\n");
         printf("[5] - Realizar entrega\n");
         printf("[6] - Exibir fila de devoluções\n");
         printf("[0] - Sair\n");
+        printf("Pontuação da transportadora: %d\n", scoreTotal);
         printf("Opção: ");
         op = getchar();
         limpa_buffer();
@@ -676,6 +701,9 @@ void menu_principal()
                 printf("\nOpção inválida!\n");
         }
     }while(op != '0');
+    fila_libera(entregas);
+    fila_libera(devolucoes);
+    lista_libera(clientes);
 }
 
 // ======================================= Main ============================================ 
