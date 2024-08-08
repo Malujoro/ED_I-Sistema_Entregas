@@ -451,6 +451,7 @@ void cadastrar_rota(Fila *fila, Lista *clientes, int *vet_enderecos)
     do
     {
         aux = clientes->primeiro;
+
         printf("\nLista de clientes:\n");
 
         for(i = 0; i < clientes->quant; i++)
@@ -462,7 +463,8 @@ void cadastrar_rota(Fila *fila, Lista *clientes, int *vet_enderecos)
         }
 
         printf("\nDigite número do cliente: ");
-        scanf(" %d", &opcao);
+        scanf("%d", &opcao);
+
         limpa_buffer();
 
         if(opcao <= 0 || opcao > clientes->quant)
